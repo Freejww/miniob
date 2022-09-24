@@ -69,6 +69,11 @@ public:
   {
     return record_handler_;
   }
+  /**
+   * 销毁一个表
+   * @param path 元数据保存的文件（完整路径）
+   */
+  RC destroy(const char *dir);
 
 public:
   const char *name() const;

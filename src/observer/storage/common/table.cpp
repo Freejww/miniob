@@ -118,6 +118,43 @@ RC Table::create(
   return rc;
 }
 
+//TODO 实现drop_table时的清理文件和相关数据
+RC Table::destroy(const char *dir)
+{
+  //刷新所有脏页 避免在drop table时由于create table 还在buffer pool 没有落盘而造成的再次建立同名表
+  RC rc = sync();
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to flush disk buffer pool");
+    return rc;
+  }
+
+  //TODO 1.删除描述表元数据的文件
+  if (unlink((std::string(dir) + TABLE_META_SUFFIX).c_str()) != 0) {
+    LOG_ERROR("Failed to destroy %s.table file",dir);
+    rc = RC::GENERIC_ERROR;
+    return rc;
+  }
+
+  //TODO 2.删除表数据文件
+  if (unlink((std::string(dir) + TABLE_DATA_SUFFIX).c_str()) != 0) {
+    LOG_ERROR("Failed to destroy %s.data file",dir);
+    rc = RC::GENERIC_ERROR;
+    return rc;
+  }
+
+  //TODO 3.清理所有的索引相关文件数据与索引元数据
+  auto size = indexes_.size();
+  for (int i = 0; i < size; ++i) {
+    if (unlink((std::string(dir) + indexes_[i]->index_meta().name()).c_str()) != 0) {
+      LOG_ERROR("Failed to destroy %s-%s.index file",dir,indexes_[i]->index_meta().name());
+      rc = RC::GENERIC_ERROR;
+      return rc;
+    }
+  }
+  return rc;
+}
+
+
 RC Table::open(const char *meta_file, const char *base_dir)
 {
   // 加载元数据文件
@@ -870,3 +907,4 @@ RC Table::sync()
   LOG_INFO("Sync table over. table=%s", name());
   return rc;
 }
+

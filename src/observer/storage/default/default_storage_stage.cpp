@@ -42,11 +42,11 @@ const char *CONF_SYSTEM_DB = "SystemDb";
 
 const char *DEFAULT_SYSTEM_DB = "sys";
 
-//! Constructor
+//! Constructor  构造函数
 DefaultStorageStage::DefaultStorageStage(const char *tag) : Stage(tag), handler_(nullptr)
 {}
 
-//! Destructor
+//! Destructor 解析函数
 DefaultStorageStage::~DefaultStorageStage()
 {
   delete handler_;
@@ -56,7 +56,7 @@ DefaultStorageStage::~DefaultStorageStage()
 //! Parse properties, instantiate a stage object
 Stage *DefaultStorageStage::make_stage(const std::string &tag)
 {
-  DefaultStorageStage *stage = new (std::nothrow) DefaultStorageStage(tag.c_str());
+  DefaultStorageStage *stage = new (std::nothrow) DefaultStorageStage(tag.c_str());//c_str()：返回当前字符串的首字符地址
   if (stage == nullptr) {
     LOG_ERROR("new DefaultStorageStage failed");
     return nullptr;
@@ -168,6 +168,16 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       std::string result = load_data(dbname, table_name, file_name);
       snprintf(response, sizeof(response), "%s", result.c_str());
     } break;
+    case SCF_DROP_TABLE: {
+      //TODO: 拿到要drop的表
+      const char *table_name = sql->sstr.drop_table.relation_name;
+      //TODO: 调用drop_table接口，要在handler_中实现
+      rc = handler_->drop_table(dbname,table_name);
+      //TODO: 返回结果，带不带换行都行
+      snprintf(response,sizeof(response),"table: %s has been deleted\n",table_name);
+
+    } break;
+
     default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
       break;

@@ -149,7 +149,13 @@ RC DefaultHandler::create_table(
 
 RC DefaultHandler::drop_table(const char *dbname, const char *relation_name)
 {
-  return RC::GENERIC_ERROR;
+  //return RC::GENERIC_ERROR;
+  //TODO 实现drop_table  查找对应的数据库 如果数据库不存在则返回错误，如果存在调用则db的drop_table接口
+  Db *db = find_db(dbname);
+  if (db == nullptr) {
+    return RC::SCHEMA_DB_NOT_OPENED;
+  }
+  return db->drop_table(relation_name);
 }
 
 RC DefaultHandler::create_index(
