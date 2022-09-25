@@ -152,25 +152,24 @@ RC Db::sync()
 RC Db::drop_table(const char *table_name)
 {
   //TODO 1.从表list(opened_tables_)找到表指针 找不到表指针要返回错误  2.调用table->destroy函数，让表自己销毁资源  3.删除成功的话，从表list将他删除
-  RC rc = RC::SUCCESS;
 
   //check table_name whether exists?
-  std::unordered_map<std::string, Table *>::iterator iter =  opened_tables_.find(table_name);
-  if (iter == opened_tables_.end()) {
+  auto it =  opened_tables_.find(table_name);
+  if (it == opened_tables_.end()) {
     LOG_ERROR("%s doesn't exist", table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
   //添加删除逻辑
-  Table *table = iter->second;
-  std::string dir = path_ + common::FILE_PATH_SPLIT_STR + table_name;
-  rc = table->destroy(dir.c_str());
+  Table *table = it->second;
+  RC rc = table->destroy(path_.c_str());
   if (rc != RC::SUCCESS) {
     LOG_ERROR("failed to drop table %s.", table_name);
     return rc;
   }
 
-  opened_tables_.erase(iter);
-  return rc;
+  opened_tables_.erase(it);
+  delete table;
+  return RC::SUCCESS;
 }
 

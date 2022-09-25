@@ -170,11 +170,11 @@ void DefaultStorageStage::handle_event(StageEvent *event)
     } break;
     case SCF_DROP_TABLE: {
       //TODO: 拿到要drop的表
-      const char *table_name = sql->sstr.drop_table.relation_name;
+      const DropTable &drop_table = sql->sstr.drop_table;
       //TODO: 调用drop_table接口，要在handler_中实现
-      rc = handler_->drop_table(dbname,table_name);
+      rc = handler_->drop_table(dbname,drop_table.relation_name);
       //TODO: 返回结果，带不带换行都行
-      snprintf(response,sizeof(response),"table: %s has been deleted\n",table_name);
+      snprintf(response,sizeof(response),"table: %s has been deleted\n",drop_table.relation_name);
 
     } break;
 

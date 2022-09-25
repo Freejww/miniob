@@ -128,30 +128,33 @@ RC Table::destroy(const char *dir)
     return rc;
   }
 
+  auto path = table_meta_file(dir,name());
   //TODO 1.删除描述表元数据的文件
-  if (unlink((std::string(dir) + TABLE_META_SUFFIX).c_str()) != 0) {
-    LOG_ERROR("Failed to destroy %s.table file",dir);
-    rc = RC::GENERIC_ERROR;
-    return rc;
+  if (unlink(path.c_str()) != 0) {
+    LOG_ERROR("Failed to remove meta file=%s, errno=%d",path.c_str(),errno);
+    return RC::GENERIC_ERROR;
   }
 
   //TODO 2.删除表数据文件
-  if (unlink((std::string(dir) + TABLE_DATA_SUFFIX).c_str()) != 0) {
-    LOG_ERROR("Failed to destroy %s.data file",dir);
-    rc = RC::GENERIC_ERROR;
-    return rc;
+  auto table_data_file = std::string (dir) + "/" + name() + TABLE_DATA_SUFFIX;
+  if (unlink(table_data_file.c_str()) != 0) {
+    LOG_ERROR("Failed to remove data file=%s, errno=%d",table_data_file.c_str(),errno);
+    return RC::GENERIC_ERROR;
   }
 
   //TODO 3.清理所有的索引相关文件数据与索引元数据
-  auto size = indexes_.size();
-  for (int i = 0; i < size; ++i) {
-    if (unlink((std::string(dir) + indexes_[i]->index_meta().name()).c_str()) != 0) {
-      LOG_ERROR("Failed to destroy %s-%s.index file",dir,indexes_[i]->index_meta().name());
-      rc = RC::GENERIC_ERROR;
-      return rc;
+  const int index_num = table_meta_.index_num();
+  for (int i = 0; i < index_num; ++i) {
+    ((BplusTreeIndex*)indexes_[i])->close();
+    const IndexMeta* index_meta = table_meta_.index(i);
+    auto index_file = table_index_file(dir,name(),index_meta->name());
+    if (unlink(index_file.c_str()) != 0) {
+      LOG_ERROR("Failed to remove index file=%s, errno=%d",index_file.c_str(),errno);
+      return RC::GENERIC_ERROR;
     }
   }
-  return rc;
+
+  return RC::SUCCESS;
 }
 
 
