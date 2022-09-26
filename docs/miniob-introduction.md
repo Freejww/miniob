@@ -106,7 +106,8 @@ seda使用异步事件的方式，在线程池中调度。每个事件(event)，
 
 `PlanCacheStage` 流转 `SQLStageEvent` ->
 
-`OptimizeStage` 流转 `ExecutionPlanEvent` ->
+`OptimizeStage` 流转 `
+ExecutionPlanEvent` ->
 
 `ExecuteStage` 处理 `ExecutionPlanEvent` 并创建 `StorageEvent`，流转到->
 

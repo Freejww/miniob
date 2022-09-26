@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/seda/stage.h"
 #include "rc.h"
 
+
 class ParseStage : public common::Stage {
 public:
   ~ParseStage();

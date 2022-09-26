@@ -161,7 +161,7 @@ RC Db::drop_table(const char *table_name)
   }
 
   //添加删除逻辑
-  Table *table = it->second;
+  Table* table = it->second;
   RC rc = table->destroy(path_.c_str());
   if (rc != RC::SUCCESS) {
     LOG_ERROR("failed to drop table %s.", table_name);
