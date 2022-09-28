@@ -1,0 +1,5 @@
+if(EXISTS "/mnt/e/miniob/unitest/log_test[1]_tests.cmake")
+  include("/mnt/e/miniob/unitest/log_test[1]_tests.cmake")
+else()
+  add_test(log_test_NOT_BUILT log_test_NOT_BUILT)
+endif()

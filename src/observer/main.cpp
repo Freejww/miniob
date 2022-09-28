@@ -51,7 +51,7 @@ void parse_parameter(int argc, char **argv)
   // Process args
   int opt;
   extern char *optarg;
-  while ((opt = getopt(argc, argv, "dp:s:f:o:e:h")) > 0) {
+  while ((opt = getopt(argc, argv, "d:p:s:f:o:e:h")) > 0) {
     switch (opt) {
       case 's':
         process_param->set_unix_socket_path(optarg);
