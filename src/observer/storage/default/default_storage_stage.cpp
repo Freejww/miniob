@@ -174,7 +174,7 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       //TODO: 调用drop_table接口，要在handler_中实现
       rc = handler_->drop_table(dbname,drop_table.relation_name);
       //TODO: 返回结果，带不带换行都行
-      snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "TRUE" : "FAILURE");
+      snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     } break;
 
     default:
@@ -232,7 +232,8 @@ RC insert_record_from_file(
     common::strip(file_value);
 
     switch (field->type()) {
-      case INTS: {
+      case INTS:
+      case DATES: {
         deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
         deserialize_stream.str(file_value);
 
@@ -245,9 +246,7 @@ RC insert_record_from_file(
         } else {
           value_init_integer(&record_values[i], int_value);
         }
-      }
-
-      break;
+      } break;
       case FLOATS: {
         deserialize_stream.clear();
         deserialize_stream.str(file_value);

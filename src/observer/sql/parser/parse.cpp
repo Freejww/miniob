@@ -25,7 +25,7 @@ extern "C" {
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name)
 {
   if (relation_name != nullptr) {
-    relation_attr->relation_name = strdup(relation_name);
+    relation_attr->relation_name = strdup(relation_name);//使用strdup()拷贝串，原理上是用了malloc()函数，不用后要使用free()释放内存
   } else {
     relation_attr->relation_name = nullptr;
   }
@@ -387,6 +387,50 @@ void query_destroy(Query *query)
   query_reset(query);
   free(query);
 }
+
+/**
+ * 检查日期是否符合规则
+ * @param y 年
+ * @param m 月
+ * @param d 日
+ * @return 0表示不符合，1表示符合
+ */
+bool check_date(int y, int m, int d)
+{
+  //TODO 根据 y:year, m:month, d:day 校验日期是否合法 DATE支持范围不超过2038年2月，不小于1970年1月1号
+  static int mon[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  bool leap = (y % 400 == 0 || (y % 100 && y %4 == 0));
+  return y > 0 && (m > 0) && (m <= 12) && (d > 0) && (d <= ((m == 2 && leap ? 1 : 0) + mon[m]));
+}
+
+/**
+ * 将DATE转换成INT格式存储
+ * @param value
+ * @param v
+ * @return -1表示失败，0表示成功
+ */
+int value_init_date(Value *value, const char *v) {
+  //TODO 将value的type 属性修改为日期属性：DATES
+  value->type = DATES;
+
+  //从lex的解析中读取 year,month,day
+  int y,m,d;
+  sscanf(v,"%d-%d-%d", &y,&m,&d);
+  //对读取的日期做合法性校验
+  bool b = check_date(y,m,d);
+  if (!b) return -1;
+  //TODO 将日期转换成整数
+  int dv = y * 10000 + m * 100 + d;
+  //将value的data属性修改为转换后的日期
+  value->data = malloc(sizeof (dv));
+  if (value->data == NULL) {
+    return -1;
+  }
+  memcpy(value->data,&dv,sizeof (dv));
+  return 0;
+}
+
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

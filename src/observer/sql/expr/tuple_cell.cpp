@@ -20,7 +20,8 @@ See the Mulan PSL v2 for more details. */
 void TupleCell::to_string(std::ostream &os) const
 {
   switch (attr_type_) {
-  case INTS: {
+  case INTS:
+  case DATES: {
     os << *(int *)data_;
   } break;
   case FLOATS: {
@@ -44,7 +45,9 @@ int TupleCell::compare(const TupleCell &other) const
 {
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
-    case INTS: return compare_int(this->data_, other.data_);
+    case INTS:
+    case DATES:
+      return compare_int(this->data_, other.data_);
     case FLOATS: return compare_float(this->data_, other.data_);
     case CHARS: return compare_string(this->data_, this->length_, other.data_, other.length_);
     default: {

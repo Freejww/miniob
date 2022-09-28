@@ -102,6 +102,7 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+        DATE_T
 
 %union {
   struct _Attr *attr;
@@ -112,7 +113,7 @@ ParserContext *get_context(yyscan_t scanner)
   float floats;
 	char *position;
 }
-
+%token <string> DATE
 %token <number> NUMBER
 %token <floats> FLOAT 
 %token <string> ID
@@ -268,6 +269,7 @@ type:
 	INT_T { $$=INTS; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
+       | DATE_T { $$=DATES; }
        ;
 ID_get:
 	ID 
@@ -308,6 +310,10 @@ value:
     |FLOAT{
   		value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
+    |DATE{
+    			$1 = substr($1,1,strlen($1)-2);
+    		value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1);
+    		}
     |SSS {
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
