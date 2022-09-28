@@ -174,7 +174,7 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       //TODO: 调用drop_table接口，要在handler_中实现
       rc = handler_->drop_table(dbname,drop_table.relation_name);
       //TODO: 返回结果，带不带换行都行
-      snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "TRUE" : "FAILURE");
+      snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     } break;
 
     default:
