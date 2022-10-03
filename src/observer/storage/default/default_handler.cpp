@@ -144,6 +144,7 @@ RC DefaultHandler::create_table(
   if (db == nullptr) {
     return RC::SCHEMA_DB_NOT_OPENED;
   }
+//  std::cout << "开始执行建表default_handler" << std::endl;
   return db->create_table(relation_name, attribute_count, attributes);
 }
 

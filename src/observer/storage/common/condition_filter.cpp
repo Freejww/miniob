@@ -40,7 +40,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
+  if (attr_type < CHARS || attr_type > DATES) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -116,11 +116,19 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+//  if (type_left != type_right) {
+//    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+//  }
+
+  if (type_left == type_right) {
+    return init(left, right, type_left, condition.comp);
+  } else if (type_left == INTS && type_right == FLOATS) {
+    return init(left,right,FLOATS,condition.comp);
+  } else if (type_left == FLOATS && type_right == INTS) {
+    return init(left,right,FLOATS,condition.comp);
+  } else {
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
-
-  return init(left, right, type_left, condition.comp);
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const
@@ -128,7 +136,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   char *left_value = nullptr;
   char *right_value = nullptr;
 
-  if (left_.is_attr) {  // value
+  if (left_.is_attr) {
     left_value = (char *)(rec.data() + left_.attr_offset);
   } else {
     left_value = (char *)left_.value;
@@ -146,7 +154,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       // 按照C字符串风格来定
       cmp_result = strcmp(left_value, right_value);
     } break;
-    case INTS: {
+    case INTS:
+    case DATES: {
       // 没有考虑大小端问题
       // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
       int left = *(int *)left_value;

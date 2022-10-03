@@ -53,7 +53,7 @@ Table::~Table()
 RC Table::create(
     const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[])
 {
-
+//  std::cout << "开始执行建表table" << std::endl;
   if (common::is_blank(name)) {
     LOG_WARN("Name cannot be empty");
     return RC::INVALID_ARGUMENT;

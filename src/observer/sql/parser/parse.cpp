@@ -57,6 +57,37 @@ void value_init_string(Value *value, const char *v)
   value->type = CHARS;
   value->data = strdup(v);
 }
+
+bool check_date(int y, int m, int d)
+{
+  static int mon[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  bool leap = (y%400==0 || (y%100 && y%4==0));
+  return y > 0
+         && (m > 0)&&(m <= 12)
+         && (d > 0)&&(d <= ((m==2 && leap)?1:0) + mon[m]);
+}
+
+
+int value_init_date(Value *value, const char *v) {
+  // TODO 将 value 的 type 属性修改为日期属性:DATES
+  value->type = DATES;
+  // 从lex的解析中读取 year,month,day
+  int y,m,d;
+  sscanf(v, "%d-%d-%d", &y, &m, &d);//not check return value eq 3, lex guarantee
+  // 对读取的日期做合法性校验
+  bool b = check_date(y,m,d);
+  if(!b) return -1;
+  // TODO 将日期转换成整数
+  int dv = y*10000+m*100+d;
+  value->data = malloc(sizeof (dv));
+  if (value->data == NULL) {
+    return -1;
+  }
+  //TODO 将value 的 data 属性修改为转换后的日期
+  memcpy(value->data,&dv,sizeof (dv));
+  return 0;
+}
+
 void value_destroy(Value *value)
 {
   value->type = UNDEFINED;
@@ -387,6 +418,8 @@ void query_destroy(Query *query)
   query_reset(query);
   free(query);
 }
+
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

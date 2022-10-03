@@ -168,6 +168,13 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       std::string result = load_data(dbname, table_name, file_name);
       snprintf(response, sizeof(response), "%s", result.c_str());
     } break;
+    case SCF_CREATE_TABLE: {
+      const CreateTable& create_table = sql->sstr.create_table;
+//      std::cout << "开始执行建表default_storage_stage" << std::endl;
+      handler_->create_table(dbname,create_table.relation_name,create_table.attribute_count,create_table.attributes);
+//      std::cout << "执行完建表default_storage_stage" << std::endl;
+      snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
     case SCF_DROP_TABLE: {
       //TODO: 拿到要drop的表
       const DropTable& drop_table = sql->sstr.drop_table;
@@ -176,7 +183,70 @@ void DefaultStorageStage::handle_event(StageEvent *event)
       //TODO: 返回结果，带不带换行都行
       snprintf(response,sizeof(response),"%s\n",rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     } break;
-
+    case SCF_SHOW_TABLES: {
+      Db *db = handler_->find_db(dbname);
+      if (nullptr == db) {
+        snprintf(response, sizeof(response), "No such database: %s\n", dbname);
+      } else {
+        std::vector<std::string> all_tables;
+        db->all_tables(all_tables);
+        if (all_tables.empty()) {
+          snprintf(response, sizeof(response), "No table\n");
+        } else {
+          std::stringstream ss;
+          for (const auto &table : all_tables) {
+            ss << table << std::endl;
+          }
+          snprintf(response, sizeof(response), "%s\n", ss.str().c_str());
+        }
+      }
+    } break;
+    case SCF_DESC_TABLE: {
+      const char *table_name = sql->sstr.desc_table.relation_name;
+      Table *table = handler_->find_table(dbname, table_name);
+      std::stringstream ss;
+      if (table != nullptr) {
+        table->table_meta().desc(ss);
+      } else {
+        ss << "No such table: " << table_name << std::endl;
+      }
+      snprintf(response, sizeof(response), "%s", ss.str().c_str());
+    } break;
+    case SCF_INSERT: {  // insert into
+      const Inserts &inserts = sql->sstr.insertion;
+      const char *table_name = inserts.relation_name;
+      rc = handler_->insert_record(current_trx, dbname, table_name, inserts.value_num, inserts.values);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
+    case SCF_UPDATE: {
+      const Updates &updates = sql->sstr.update;
+      const char *table_name = updates.relation_name;
+      const char *field_name = updates.attribute_name;
+      int updated_count = 0;
+      rc = handler_->update_record(current_trx,
+          dbname,
+          table_name,
+          field_name,
+          &updates.value,
+          updates.condition_num,
+          updates.conditions,
+          &updated_count);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
+    case SCF_DELETE: {
+      const Deletes &deletes = sql->sstr.deletion;
+      const char *table_name = deletes.relation_name;
+      int deleted_count = 0;
+      rc = handler_->delete_record(
+          current_trx, dbname, table_name, deletes.condition_num, deletes.conditions, &deleted_count);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
+    case SCF_CREATE_INDEX: {
+      const CreateIndex &create_index = sql->sstr.create_index;
+      rc = handler_->create_index(
+          current_trx, dbname, create_index.relation_name, create_index.index_name, create_index.attribute_name);
+      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    } break;
     default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
       break;
@@ -232,7 +302,8 @@ RC insert_record_from_file(
     common::strip(file_value);
 
     switch (field->type()) {
-      case INTS: {
+      case INTS:
+      case DATES: {
         deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
         deserialize_stream.str(file_value);
 
@@ -245,9 +316,7 @@ RC insert_record_from_file(
         } else {
           value_init_integer(&record_values[i], int_value);
         }
-      }
-
-      break;
+      } break;
       case FLOATS: {
         deserialize_stream.clear();
         deserialize_stream.str(file_value);
