@@ -20,6 +20,26 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+RC field_type_compare_compatible_table(AttrType type_left, AttrType type_right)
+{
+  static std::vector<std::unordered_set<AttrType>> type_map = {
+      {},
+      {CHARS},
+      {INTS, FLOATS},
+      {FLOATS,INTS},
+      {DATES, CHARS},
+      {CHARS, TEXTS},
+      {INTS, FLOATS, CHARS, DATES, NONE}};
+  auto &left_compatitable_set = type_map[type_left];
+  auto &right_compatitable_set = type_map[type_right];
+  if ((left_compatitable_set.find(type_right) == left_compatitable_set.end()) && (right_compatitable_set.find(type_left) == right_compatitable_set.end()))
+  {
+    LOG_ERROR("Invalid type comparision with unsupported attribute type: %d,%d", type_left, type_right);
+    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+  }
+  return RC::SUCCESS;
+}
+
 ConditionFilter::~ConditionFilter()
 {}
 
@@ -110,25 +130,16 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   }
 
   // 校验和转换
-  //  if (!field_type_compare_compatible_table[type_left][type_right]) {
-  //    // 不能比较的两个字段， 要把信息传给客户端
-  //    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  //  }
+  RC rc = field_type_compare_compatible_table(type_left,type_right);
+    if (rc != RC::SUCCESS) {
+      // 不能比较的两个字段， 要把信息传给客户端
+      return rc;
+    }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-//  if (type_left != type_right) {
-//    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-//  }
+  AttrType type;
+  ;
 
-  if (type_left == type_right) {
-    return init(left, right, type_left, condition.comp);
-  } else if (type_left == INTS && type_right == FLOATS) {
-    return init(left,right,FLOATS,condition.comp);
-  } else if (type_left == FLOATS && type_right == INTS) {
-    return init(left,right,FLOATS,condition.comp);
-  } else {
-    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  }
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const

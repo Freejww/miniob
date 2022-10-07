@@ -684,10 +684,31 @@ private:
 
 };
 
+static RC record_reader_update_adapter(Record *record, void *context) {
+  RecordUpdater &record_updater = *(RecordUpdater *)context;
+  return record_updater.update_record(record);
+}
+
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
     const Condition conditions[], int *updated_count)
 {
-  return RC::GENERIC_ERROR;
+  //条件过滤
+  CompositeConditionFilter condition_filter;
+  RC rc = condition_filter.init(*this, conditions, condition_num);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  //判断属性类型和值类型是否对应
+  const FieldMeta *filed_meta = this->table_meta().field(attribute_name);
+  if (nullptr == filed_meta) {
+    LOG_WARN("No such field. %s.%s", this->name(), attribute_name);
+    return RC::SCHEMA_FIELD_MISSING;
+  }
+  if (filed_meta->type() != value->type) {
+
+  }
+
 }
 
 class RecordDeleter {
