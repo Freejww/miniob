@@ -208,8 +208,8 @@ RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relat
   if (nullptr == table) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-
-  return table->update_record(trx, attribute_name, value, condition_num, conditions, updated_count);
+  //属性和值类型判断以及条件判断放到table.cpp的update_record()
+  return table->update_record(trx, attribute_name, value,condition_num,conditions,updated_count);
 }
 
 Db *DefaultHandler::find_db(const char *dbname) const

@@ -260,6 +260,7 @@ RC Table::insert_record(Trx *trx, Record *record)
 {
   RC rc = RC::SUCCESS;
 
+  //在事务中插入记录
   if (trx != nullptr) {
     trx->init_trx_info(this, *record);
   }
@@ -269,6 +270,7 @@ RC Table::insert_record(Trx *trx, Record *record)
     return rc;
   }
 
+  //检查事务插入记录是否成功，不成功需要输出日志并删除失败操作
   if (trx != nullptr) {
     rc = trx->insert_record(this, record);
     if (rc != RC::SUCCESS) {
@@ -285,6 +287,7 @@ RC Table::insert_record(Trx *trx, Record *record)
     }
   }
 
+  //对插入的记录同时建立该记录的索引
   rc = insert_entry_of_indexes(record->data(), record->rid());
   if (rc != RC::SUCCESS) {
     RC rc2 = delete_entry_of_indexes(record->data(), record->rid(), true);
@@ -462,11 +465,13 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
     limit = INT_MAX;
   }
 
+  //若有索引则走索引扫描
   IndexScanner *index_scanner = find_index_for_scan(filter);
   if (index_scanner != nullptr) {
     return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
   }
 
+  //没有索引走记录文件扫描
   RC rc = RC::SUCCESS;
   RecordFileScanner scanner;
   rc = scanner.open_scan(*data_buffer_pool_, filter);
@@ -645,6 +650,40 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   return rc;
 }
 
+RC Table::update_record(Record *record, const FieldMeta *field_meta, const Value *value)
+{
+  return RC::GENERIC_ERROR;
+}
+
+class RecordUpdater {
+public:
+  RecordUpdater(Table &table, Trx *trx, const FieldMeta * field_meta, const Value * value) :
+        table_(table), trx_(trx), field_meta_(field_meta), value_(value){}
+
+  RC update_record(Record *record)
+  {
+    RC rc = RC::SUCCESS;
+    rc = table_.update_record(record, field_meta_, value_);//调用更新记录逻辑
+    if (rc == RC::SUCCESS) {
+      updated_count_++;
+    }
+    return rc;
+  }
+
+  int updated_count() const
+  {
+    return updated_count_;
+  }
+
+private:
+  Table &table_;
+  Trx *trx_;
+  const FieldMeta * field_meta_;
+  const Value * value_;
+  int updated_count_ = 0;
+
+};
+
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
     const Condition conditions[], int *updated_count)
 {
@@ -659,7 +698,7 @@ public:
   RC delete_record(Record *record)
   {
     RC rc = RC::SUCCESS;
-    rc = table_.delete_record(trx_, record);
+    rc = table_.delete_record(trx_, record);//调用删除记录逻辑
     if (rc == RC::SUCCESS) {
       deleted_count_++;
     }

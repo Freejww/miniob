@@ -26,6 +26,7 @@ class ConditionFilter;
 class DefaultConditionFilter;
 class Index;
 class IndexScanner;
+class RecordUpdater;
 class RecordDeleter;
 class Trx;
 
@@ -97,6 +98,9 @@ private:
   IndexScanner *find_index_for_scan(const DefaultConditionFilter &filter);
 
   RC insert_record(Trx *trx, Record *record);
+
+  RC update_record(Record * record,const FieldMeta * field_meta,const Value * value);
+
 
 private:
   friend class RecordUpdater;
