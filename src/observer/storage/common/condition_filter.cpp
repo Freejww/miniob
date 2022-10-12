@@ -138,8 +138,17 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
   AttrType type;
-  ;
-
+  CompOp op = condition.comp;
+  if (!left.is_attr && right.is_attr) { // left:value, right:attr
+    type = type_right;
+  } else if (left.is_attr && !right.is_attr) { // left:attr, right:value
+    type = type_left;
+  } else if (left.is_attr && right.is_attr) {   // both attr   // TODO
+    type = type_left;
+  } else {
+    type = type_left;
+  }
+  return init(left,right,type,op);
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const

@@ -652,7 +652,27 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
 
 RC Table::update_record(Record *record, const FieldMeta *field_meta, const Value *value)
 {
-  return RC::GENERIC_ERROR;
+  RC rc = RC::SUCCESS;
+  const IndexMeta *index_meta = table_meta_.find_index_by_field(field_meta->name());
+  //如果该属性上有索引
+  if (index_meta != nullptr) {
+    rc = delete_entry_of_indexes(record->data(),record->rid(),true);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("delete index:%s on field:%s failed",index_meta->name(),field_meta->name());
+      return rc;
+    }
+    //采用就地更新的方法 后续可能需要封装成函数支持不同类型值的修改
+    memcpy(record->data() + field_meta->offset(), value->data, field_meta->len());
+    rc = insert_entry_of_indexes(record->data(),record->rid());
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("insert index:%s on field:%s failed",index_meta->name(),field_meta->name());
+      return rc;
+    }
+  } else {
+    memcpy(record->data() + field_meta->offset(), value->data, field_meta->len());
+  }
+
+  return this->record_handler_->update_record(record);
 }
 
 class RecordUpdater {
@@ -700,16 +720,27 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
   }
 
   //判断属性类型和值类型是否对应
-  const FieldMeta *filed_meta = this->table_meta().field(attribute_name);
-  if (nullptr == filed_meta) {
+  const FieldMeta *field_meta = this->table_meta().field(attribute_name);
+  if (nullptr == field_meta) {
     LOG_WARN("No such field. %s.%s", this->name(), attribute_name);
     return RC::SCHEMA_FIELD_MISSING;
   }
-  if (filed_meta->type() != value->type) {
-
+  //值类型不一定必须是同种类型，也可以是比如int和float的类型
+  if (field_type_compare_compatible_table(field_meta->type(), value->type) != RC::SUCCESS) {
+    LOG_WARN("Invalid value type. field name=%s, type=%d, but given=%d", field_meta->name(), field_meta->type(), value->type);
+    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
+  //同delete逻辑一样
+  RecordUpdater updater(*this, trx, field_meta, value);
+  rc = scan_record(trx, &condition_filter, -1, &updater, record_reader_update_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.updated_count();
+  }
+  return rc;
 }
+
+
 
 class RecordDeleter {
 public:
